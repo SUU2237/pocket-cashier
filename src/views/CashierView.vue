@@ -7,6 +7,7 @@ import { useProductStore, type VariantItem } from '@/stores/products'
 import VariantModal from '@/components/VariantModal.vue'
 import CartDrawer from '@/components/CartDrawer.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
+import EventSalesModal from '@/components/EventSalesModal.vue'
 
 const router = useRouter()
 const eventStore = useEventStore()
@@ -29,10 +30,14 @@ const cartItems = ref<CartItem[]>([])
 const receivedAmount = ref(0)
 const isModalOpen = ref(false)
 const isCartDrawerOpen = ref(false)
+const isSalesModalOpen = ref(false)
 const showResetConfirm = ref(false)
 const showNoStockAlert = ref(false)
 const showCheckoutSuccess = ref(false)
 const lastCheckoutSummary = ref({ total: 0, change: 0 })
+const isCartCheckOpen = ref(false)
+
+
 
 // 依商品名稱聚合該活動已配置的規格清單
 interface DisplayProduct {
@@ -256,6 +261,7 @@ const handleCheckout = () => {
   lastCheckoutSummary.value = { total, change }
   showCheckoutSuccess.value = true
   handleClearCart()
+  isCartCheckOpen.value = false
 }
 </script>
 
@@ -284,10 +290,10 @@ const handleCheckout = () => {
       <div class="flex items-center gap-2">
         <button
           type="button"
-          @click="router.push('/events')"
+          @click="isSalesModalOpen = true"
           class="text-xs font-mono font-bold border-2 border-black px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 transition cursor-pointer"
         >
-          EVENTS
+          TOTAL
         </button>
         <button
           type="button"
@@ -352,7 +358,7 @@ const handleCheckout = () => {
                 :alt="item.name"
                 class="w-full h-full object-cover"
               />
-  <span v-else class="text-zinc-400 font-mono text-xs font-bold">[IMG]</span>
+              <span v-else class="text-zinc-400 font-mono text-xs font-bold">[IMG]</span>
             </div>
 
             <div>
@@ -480,7 +486,7 @@ const handleCheckout = () => {
           <button
             type="button"
             :disabled="cartItems.length === 0"
-            @click="handleCheckout"
+            @click="isCartCheckOpen = true"
             class="w-full py-4 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed active:translate-x-0.5 active:translate-y-0.5 border-2 border-black font-black text-white text-base tracking-wider shadow-[3px_3px_0px_#000] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer mt-1"
           >
             <span>完成結帳</span>
@@ -490,6 +496,14 @@ const handleCheckout = () => {
       </section>
 
     </main>
+
+
+    <!-- 掛載統計明細 -->
+    <EventSalesModal
+      :is-open="isSalesModalOpen"
+      :event="activeEvent"
+      @close="isSalesModalOpen = false"
+    />
 
     <!-- 多規格選擇彈窗 -->
     <VariantModal
@@ -535,6 +549,18 @@ const handleCheckout = () => {
       confirm-text="了解"
       @confirm="showNoStockAlert = false"
       @cancel="showNoStockAlert = false"
+    />
+
+    <ConfirmModal
+      :is-open="isCartCheckOpen"
+      title="確認完成這筆結帳？"
+      message="完成結帳將無法進行訂單修改"
+      tag="CONFIRM"
+      type="warning"
+      confirm-text="確定結帳"
+      cancel-text="回到購物車"
+      @confirm="handleCheckout()"
+      @cancel="isCartCheckOpen = false"
     />
 
     <!-- 結帳成功提示 -->

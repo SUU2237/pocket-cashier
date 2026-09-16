@@ -1,0 +1,158 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import type { MarketEvent } from '@/stores/events'
+
+const props = defineProps<{
+  isOpen: boolean
+  event: MarketEvent | null
+}>()
+
+const emit = defineEmits<{
+  (e: 'close'): void
+}>()
+
+// 聚合所有訂單項目
+interface AggregatedSaleItem {
+  key: string
+  productName: string
+  variantName: string
+  price: number
+  totalQty: number
+  subtotal: number
+}
+
+const salesReport = computed(() => {
+  if (!props.event || !props.event.orders) {
+    return {
+      items: [] as AggregatedSaleItem[],
+      totalQty: 0,
+      totalRevenue: 0,
+      orderCount: 0,
+    }
+  }
+
+  const map = new Map<string, AggregatedSaleItem>()
+  let totalQty = 0
+
+  props.event.orders.forEach(order => {
+    (order.items || []).forEach(item => {
+      const key = `${item.productName}_${item.variantName}`
+      const exist = map.get(key)
+      if (exist) {
+        exist.totalQty += item.qty
+        exist.subtotal += item.price * item.qty
+      } else {
+        map.set(key, {
+          key,
+          productName: item.productName,
+          variantName: item.variantName,
+          price: item.price,
+          totalQty: item.qty,
+          subtotal: item.price * item.qty,
+        })
+      }
+      totalQty += item.qty
+    })
+  })
+
+  // 按銷售量由大到小排序
+  const items = Array.from(map.values()).sort((a, b) => b.totalQty - a.totalQty)
+  const totalRevenue = items.reduce((acc, cur) => acc + cur.subtotal, 0)
+
+  return {
+    items,
+    totalQty,
+    totalRevenue,
+    orderCount: props.event.orders.length,
+  }
+})
+</script>
+
+<template>
+  <div
+    v-if="isOpen && event"
+    class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs"
+  >
+    <div class="bg-white border-2 border-black w-full max-w-lg shadow-[6px_6px_0px_#000] flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95">
+      
+      <!-- 標題欄 -->
+      <header class="p-4 border-b-2 border-black flex items-center justify-between bg-zinc-50">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-[10px] font-mono font-bold bg-black text-white px-1.5 py-0.5">SALES REPORT</span>
+            <span class="text-xs font-mono text-zinc-500">{{ event.date }}</span>
+          </div>
+          <h2 class="font-black text-base md:text-lg truncate max-w-75">
+            {{ event.name }}
+          </h2>
+        </div>
+        <button
+          type="button"
+          @click="emit('close')"
+          class="border-2 border-black p-1 hover:bg-black hover:text-white transition cursor-pointer"
+        >
+          ✕
+        </button>
+      </header>
+
+      <!-- 統計大字塊 -->
+      <div class="grid grid-cols-3 border-b-2 border-black bg-yellow-50 text-center font-mono">
+        <div class="p-3 border-r-2 border-black">
+          <div class="text-[10px] text-zinc-500 font-bold uppercase">總營業額</div>
+          <div class="text-lg font-black text-black">${{ salesReport.totalRevenue }}</div>
+        </div>
+        <div class="p-3 border-r-2 border-black">
+          <div class="text-[10px] text-zinc-500 font-bold uppercase">售出總數</div>
+          <div class="text-lg font-black text-orange-600">{{ salesReport.totalQty }} 件</div>
+        </div>
+        <div class="p-3">
+          <div class="text-[10px] text-zinc-500 font-bold uppercase">總單數</div>
+          <div class="text-lg font-black text-zinc-700">{{ salesReport.orderCount }} 筆</div>
+        </div>
+      </div>
+
+      <!-- 明細列表 -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-2">
+        <div
+          v-if="salesReport.items.length === 0"
+          class="py-10 text-center font-mono text-xs text-zinc-400 border border-dashed border-zinc-300"
+        >
+          本次活動尚無銷售與結帳紀錄
+        </div>
+
+        <div
+          v-else
+          v-for="(item, idx) in salesReport.items"
+          :key="item.key"
+          class="p-3 border-2 border-black bg-white flex items-center justify-between shadow-[2px_2px_0px_#000]"
+        >
+          <div class="min-w-0 flex items-center gap-3">
+            <span class="font-mono font-black text-xs text-zinc-400 w-5">#{{ idx + 1 }}</span>
+            <div class="truncate">
+              <div class="font-bold text-sm text-black truncate">{{ item.productName }}</div>
+              <div class="font-mono text-xs text-zinc-500">
+                規格: {{ item.variantName }} · 單價 ${{ item.price }}
+              </div>
+            </div>
+          </div>
+
+          <div class="text-right shrink-0 font-mono ml-2">
+            <div class="text-sm font-black text-orange-600">x{{ item.totalQty }}</div>
+            <div class="text-xs text-zinc-500 font-bold">${{ item.subtotal }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部關閉按鈕 -->
+      <footer class="p-3 border-t-2 border-black bg-zinc-50">
+        <button
+          type="button"
+          @click="emit('close')"
+          class="w-full py-2.5 bg-black text-white hover:bg-zinc-800 active:translate-x-0.5 active:translate-y-0.5 border-2 border-black font-mono font-bold text-xs shadow-[2px_2px_0px_#000] active:shadow-none transition cursor-pointer"
+        >
+          關閉明細
+        </button>
+      </footer>
+    </div>
+  </div>
+</template>

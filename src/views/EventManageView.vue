@@ -7,6 +7,7 @@ import { useProductStore } from '@/stores/products'
 import EventEditModal, { type EventFormData } from '@/components/EventEditModal.vue'
 import EventStockModal, { type VariantStockItem } from '@/components/EventStockModal.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
+import EventSalesModal from '@/components/EventSalesModal.vue'
 
 const router = useRouter()
 const eventStore = useEventStore()
@@ -23,6 +24,15 @@ const deleteTargetId = ref<string | null>(null)
 // 帶貨/配置彈窗狀態
 const isStockModalOpen = ref(false)
 const currentStockingEvent = ref<MarketEvent | null>(null)
+
+// 控制銷售彈窗
+const isSalesModalOpen = ref(false)
+const selectedEventForSales = ref<MarketEvent | null>(null)
+
+const openSalesReport = (evt: MarketEvent) => {
+  selectedEventForSales.value = evt
+  isSalesModalOpen.value = true
+}
 
 // 將全域商品與該場次既有配額組合為配置清單
 const currentStockList = computed<VariantStockItem[]>(() => {
@@ -225,7 +235,7 @@ const filteredEvents = computed(() => {
               </h2>
             </div>
 
-            <!-- 數據統計 -->
+            <!-- 數據統計與銷售明細按鈕（靠右同排） -->
             <div class="flex items-center gap-6 font-mono">
               <div>
                 <div class="text-[10px] text-zinc-500 uppercase font-bold">上架規格</div>
@@ -234,6 +244,15 @@ const filteredEvents = computed(() => {
               <div class="border-l border-dashed border-zinc-300 pl-6">
                 <div class="text-[10px] text-zinc-500 uppercase font-bold">累計營收</div>
                 <div class="text-lg font-black text-emerald-600">${{ getEventRevenue(ev) }}</div>
+              </div>
+              <div class="pl-6 ml-auto">
+                <button
+                  type="button"
+                  @click="openSalesReport(ev)"
+                  class="px-3 py-1.5 bg-white hover:bg-zinc-100 border-2 border-black font-mono text-xs font-bold shadow-[2px_2px_0px_#000] active:shadow-none transition cursor-pointer"
+                >
+                  銷售明細
+                </button>
               </div>
             </div>
           </div>
@@ -303,6 +322,12 @@ const filteredEvents = computed(() => {
       :stock-list="currentStockList"
       @close="isStockModalOpen = false"
       @save="handleSaveStock"
+    />
+
+    <EventSalesModal
+      :is-open="isSalesModalOpen"
+      :event="selectedEventForSales"
+      @close="isSalesModalOpen = false"
     />
 
     <ConfirmModal
