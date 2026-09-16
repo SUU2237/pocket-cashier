@@ -140,7 +140,7 @@ const compressImage = (file: File): Promise<string> => {
       img.src = e.target?.result as string
       img.onload = () => {
         const canvas = document.createElement('canvas')
-        const MAX_SIZE = 300 // POS 機小圖只需 300px
+        const MAX_SIZE = 160 // POS 機小圖只需 300px
         let width = img.width
         let height = img.height
 
@@ -160,8 +160,9 @@ const compressImage = (file: File): Promise<string> => {
         canvas.height = height
         const ctx = canvas.getContext('2d')
         ctx?.drawImage(img, 0, 0, width, height)
-        // 壓縮成 0.7 品質的 jpeg，單圖僅約 20KB
-        resolve(canvas.toDataURL('image/jpeg', 0.7))
+
+        // 壓縮成 0.6 品質的 jpeg，單圖僅約 10KB
+        resolve(canvas.toDataURL('image/jpeg', 0.6))
       }
       img.onerror = reject
     }

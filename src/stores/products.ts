@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
+import { useStorageStore } from './storage'
+
 
 export interface VariantItem {
   id: string
@@ -18,14 +20,24 @@ export interface Product {
 
 const STORAGE_KEY = 'NEO_POS_PRODUCTS'
 
+
 export const useProductStore = defineStore('products', () => {
+  const strageStore = useStorageStore()
   const saved = localStorage.getItem(STORAGE_KEY)
   const products = ref<Product[]>(saved ? JSON.parse(saved) : [])
 
   watch(
     products,
     (val) => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(val))
+      try{
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(val))
+        strageStore.calculateUsage()
+      }catch(err: any){
+        if(err?.name === 'QuotaExceededError' || err?.code === 22){
+          strageStore.triggerStorageError()
+        }
+      }
+      
     },
     { deep: true },
   )
@@ -67,3 +79,4 @@ export const useProductStore = defineStore('products', () => {
     deductStock,
   }
 })
+

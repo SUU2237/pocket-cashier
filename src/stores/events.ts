@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { useProductStore } from './products'
+import { useStorageStore } from './storage'
 
 export interface EventStockItem {
   variantId: string
@@ -43,13 +44,22 @@ export interface MarketEvent {
 const STORAGE_KEY = 'NEO_POS_EVENTS'
 
 export const useEventStore = defineStore('events', () => {
+  const storageStore = useStorageStore()
   const saved = localStorage.getItem(STORAGE_KEY)
   const events = ref<MarketEvent[]>(saved ? JSON.parse(saved) : [])
 
   watch(
     events,
     (val) => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(val))
+      try{
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(val))
+        storageStore.calculateUsage()
+      }catch(err: any){
+        if(err?.name === 'QuotaExceededError' || err?.codr === 22){
+          storageStore.triggerStorageError()
+        }
+      }
+      
     },
     { deep: true },
   )
