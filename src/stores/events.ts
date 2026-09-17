@@ -25,6 +25,7 @@ export interface OrderRecord {
   id: string
   eventId: string
   createdAt: string
+  date?: string
   items: OrderItem[]
   totalAmount: number
   receivedAmount: number
@@ -130,10 +131,12 @@ export const useEventStore = defineStore('events', () => {
     })
 
     // 3. 寫入訂單紀錄
+    const now = new Date()
     target.orders.unshift({
       ...order,
       id: `ord_${Date.now()}`,
-      createdAt: new Date().toLocaleTimeString('zh-TW', { hour12: false }),
+      date: now.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+      createdAt: now.toLocaleTimeString('zh-TW', { hour12: false }),
     })
   }
 

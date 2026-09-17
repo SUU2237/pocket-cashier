@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue' // 1. 補上 ref
 import type { MarketEvent } from '@/stores/events'
 
 const props = defineProps<{
@@ -11,7 +11,10 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
-// 聚合所有訂單項目
+
+const currentTab = ref<'items' | 'orders'>('items')
+
+// 聚合所有訂單項目（維持原樣不變）
 interface AggregatedSaleItem {
   key: string
   productName: string
@@ -66,6 +69,22 @@ const salesReport = computed(() => {
     orderCount: props.event.orders.length,
   }
 })
+
+// 判斷是否需要插入跨日分隔線，並回傳前一天的日期字串
+const getPreviousOrderDate = (idx: number): string | null => {
+  const orders = props.event?.orders
+  if (!orders) return null
+
+  const currentOrder = orders[idx]
+  const nextOrder = orders[idx + 1] // 較舊的一筆
+
+  // 如果有下一筆，且兩者日期都有值且不相同
+  if (currentOrder?.date && nextOrder?.date && currentOrder.date !== nextOrder.date) {
+    return nextOrder.date
+  }
+
+  return null
+}
 </script>
 
 <template>
@@ -111,39 +130,123 @@ const salesReport = computed(() => {
         </div>
       </div>
 
-      <!-- 明細列表 -->
-      <div class="flex-1 overflow-y-auto p-4 space-y-2">
-        <div
-          v-if="salesReport.items.length === 0"
-          class="py-10 text-center font-mono text-xs text-zinc-400 border border-dashed border-zinc-300"
+      <!-- 切換按鈕 -->
+      <div class="flex border-b-2 border-black bg-zinc-100 font-mono text-xs font-bold shrink-0">
+        <button
+          type="button"
+          @click="currentTab = 'items'"
+          class="flex-1 py-2 text-center border-r-2 border-black transition cursor-pointer"
+          :class="currentTab === 'items' ? 'bg-white text-black font-black underline decoration-2' : 'text-zinc-500 hover:text-black'"
         >
-          本次活動尚無銷售與結帳紀錄
-        </div>
-
-        <div
-          v-else
-          v-for="(item, idx) in salesReport.items"
-          :key="item.key"
-          class="p-3 border-2 border-black bg-white flex items-center justify-between shadow-[2px_2px_0px_#000]"
+          銷售統計
+        </button>
+        <button
+          type="button"
+          @click="currentTab = 'orders'"
+          class="flex-1 py-2 text-center transition cursor-pointer"
+          :class="currentTab === 'orders' ? 'bg-white text-black font-black underline decoration-2' : 'text-zinc-500 hover:text-black'"
         >
-          <div class="min-w-0 flex items-center gap-3">
-            <span class="font-mono font-black text-xs text-zinc-400 w-5">#{{ idx + 1 }}</span>
-            <div class="truncate">
-              <div class="font-bold text-sm text-black truncate">{{ item.productName }}</div>
-              <div class="font-mono text-xs text-zinc-500">
-                規格: {{ item.variantName }} · 單價 ${{ item.price }}
-              </div>
-            </div>
-          </div>
-
-          <div class="text-right shrink-0 font-mono ml-2">
-            <div class="text-sm font-black text-orange-600">x{{ item.totalQty }}</div>
-            <div class="text-xs text-zinc-500 font-bold">${{ item.subtotal }}</div>
-          </div>
-        </div>
+          逐筆訂單記錄 ({{ event.orders?.length || 0 }})
+        </button>
       </div>
 
-      <!-- 底部關閉按鈕 -->
+      <!-- 明細列表 -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-2">
+        
+        <!-- 銷量統計 -->
+        <template v-if="currentTab === 'items'">
+          <div
+            v-if="salesReport.items.length === 0"
+            class="py-10 text-center font-mono text-xs text-zinc-400 border border-dashed border-zinc-300"
+          >
+            本次活動尚無銷售與結帳紀錄
+          </div>
+
+          <div
+            v-else
+            v-for="(item, idx) in salesReport.items"
+            :key="item.key"
+            class="p-3 border-2 border-black bg-white flex items-center justify-between shadow-[2px_2px_0px_#000]"
+          >
+            <div class="min-w-0 flex items-center gap-3">
+              <span class="font-mono font-black text-xs text-zinc-400 w-5">#{{ idx + 1 }}</span>
+              <div class="truncate">
+                <div class="font-bold text-sm text-black truncate">{{ item.productName }}</div>
+                <div class="font-mono text-xs text-zinc-500">
+                  規格: {{ item.variantName }} · 單價 ${{ item.price }}
+                </div>
+              </div>
+            </div>
+
+            <div class="text-right shrink-0 font-mono ml-2">
+              <div class="text-sm font-black text-orange-600">x{{ item.totalQty }}</div>
+              <div class="text-xs text-zinc-500 font-bold">${{ item.subtotal }}</div>
+            </div>
+          </div>
+        </template>
+
+        <!-- Tab 2: 逐筆訂單記錄清單 (含跨日虛線分隔) -->
+        <template v-else>
+          <div
+            v-if="!event.orders || event.orders.length === 0"
+            class="py-10 text-center font-mono text-xs text-zinc-400 border border-dashed border-zinc-300"
+          >
+            尚無任何結帳訂單
+          </div>
+
+          <template v-else v-for="(order, idx) in event.orders" :key="order.id">
+            <!-- 訂單卡片本體 -->
+            <div class="p-3 border-2 border-black bg-zinc-50 space-y-2 shadow-[2px_2px_0px_#000] text-xs font-mono">
+              <!-- 訂單時間與金額 -->
+              <div class="flex items-center justify-between border-b border-dashed border-zinc-300 pb-1.5">
+                <div class="flex items-center gap-2">
+                  <span class="bg-black text-white px-1 py-0.5 text-[10px] font-bold">
+                    #{{ event.orders.length - idx }}
+                  </span>
+                  <span class="text-zinc-500 font-bold">{{ order.createdAt }}</span>
+                </div>
+                <span class="font-black text-sm">${{ order.totalAmount }}</span>
+              </div>
+
+              <!-- 購買項目細項 -->
+              <div class="space-y-1 text-zinc-700">
+                <div
+                  v-for="i in order.items"
+                  :key="i.variantId"
+                  class="flex justify-between"
+                >
+                  <span class="truncate mr-2">{{ i.productName }} ({{ i.variantName }})</span>
+                  <span class="font-bold shrink-0">x{{ i.qty }}</span>
+                </div>
+              </div>
+
+              <!-- 收找金額 -->
+              <div class="pt-1.5 border-t border-zinc-200 flex justify-between text-[11px] text-zinc-500">
+                <span>實收: ${{ order.receivedAmount }}</span>
+                <span v-if="order.changeAmount > 0" class="text-emerald-700 font-bold">找零: ${{ order.changeAmount }}</span>
+                <span v-else class="text-zinc-400">免找零</span>
+              </div>
+            </div>
+
+           
+            <!-- 自動插入跨日分隔線 -->
+            <div
+              v-if="getPreviousOrderDate(idx)"
+              class="flex items-center my-3 text-[11px] font-mono text-zinc-400 font-bold"
+            >
+              <div class="flex-1 border-t-2 border-dashed border-zinc-300"></div>
+              <span class="px-3 bg-zinc-200 text-zinc-700 py-0.5 border border-black shadow-[1px_1px_0px_#000]">
+                {{ getPreviousOrderDate(idx) }}
+              </span>
+              <div class="flex-1 border-t-2 border-dashed border-zinc-300"></div>
+            </div>
+            
+          </template>
+        </template>
+
+      </div>
+
+      
       <footer class="p-3 border-t-2 border-black bg-zinc-50">
         <button
           type="button"
