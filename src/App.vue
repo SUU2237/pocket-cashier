@@ -5,8 +5,11 @@ import StorageWarningBanner from './components/StorageWarningBanner.vue';
 </script>
 
 <template>
-  <RouterView />
-  <StorageWarningBanner/>
+  <div class="min-h-screen bg-zinc-100 text-black pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+    <RouterView />
+    <StorageWarningBanner/>
+  </div>
+  
 </template>
 
 <style scoped></style>

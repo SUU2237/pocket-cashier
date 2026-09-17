@@ -13,7 +13,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['shopping-cart.png'],
+      includeAssets: ['shopping-cart-small.png'],
       manifest: {
         name: 'Pocket POS',
         short_name: 'PocketPOS',
@@ -23,12 +23,12 @@ export default defineConfig({
         display: 'standalone',
         icons: [
           {
-            src: 'shopping-cart.png',
+            src: 'shopping-cart-small.png',
             sizes: '192x192',
             type: 'image/png',
           },
           {
-            src: 'shopping-cart.png',
+            src: 'shopping-cart-small.png',
             sizes: '512x512',
             type: 'image/png',
           },
