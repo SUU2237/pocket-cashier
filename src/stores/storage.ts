@@ -29,7 +29,7 @@ export const useStorageStore = defineStore('storage', () => {
   })
 
   const formattedUsed = computed(() => {
-    return (usedBytes.value / (1024 * 1024)).toFixed(2) + ' MB'
+    return (usedBytes.value / (1024 * 1024)).toFixed(2)
   })
 
   const isNearFull = computed(() => usagePercentage.value >= 80)

@@ -33,7 +33,7 @@ onMounted(() => {
     </div>
 
     <p class="text-xs text-zinc-100 mt-2 leading-relaxed">
-      目前已使用 <strong>{{ storageStore.formattedUsed }}</strong> (約 {{ storageStore.usagePercentage }}%)。
+      目前已使用 <strong>{{ storageStore.formattedUsed }} MB</strong> (約 {{ storageStore.usagePercentage }}%)。
       {{ storageStore.isStorageError ? '資料寫入失敗！請刪除歷史活動、移除部分商品圖片或進行備份。' : '空間接近 5MB 上限，建議清理無用的商品圖片或歷史場次。' }}
     </p>
 

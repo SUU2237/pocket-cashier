@@ -51,6 +51,7 @@ const resetDraftFromProps = () => {
     form.id = undefined
     form.name = ''
     form.category = ''
+    form.imageUrl = ''
     form.variants = [
       { id: `var_${Date.now()}`, name: '', price: '', stock: '' },
     ]
@@ -130,7 +131,7 @@ const handleSave = () => {
   emit('close')
 }
 
-// 壓縮圖片為 300x300 的輕量 Base64，避免塞爆 LocalStorage
+// 壓縮圖片為輕量 Base64，避免塞爆 LocalStorage
 const compressImage = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -140,7 +141,7 @@ const compressImage = (file: File): Promise<string> => {
       img.src = e.target?.result as string
       img.onload = () => {
         const canvas = document.createElement('canvas')
-        const MAX_SIZE = 160 // POS 機小圖只需 160px
+        const MAX_SIZE = 230 // POS 機小圖只需 230px
         let width = img.width
         let height = img.height
 
@@ -159,7 +160,12 @@ const compressImage = (file: File): Promise<string> => {
         canvas.width = width
         canvas.height = height
         const ctx = canvas.getContext('2d')
-        ctx?.drawImage(img, 0, 0, width, height)
+        if(ctx){
+          ctx.fillStyle = '#f4f4f5'
+          ctx.fillRect(0, 0, width, height)
+          ctx.drawImage(img, 0, 0, width, height)
+        }
+        
 
         // 壓縮成 0.6 品質的 jpeg，單圖僅約 10KB
         resolve(canvas.toDataURL('image/jpeg', 0.6))

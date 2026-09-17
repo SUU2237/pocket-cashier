@@ -330,7 +330,7 @@ const stockWarnings = computed(() => {
       <!-- 底部資訊條 -->
       <footer class="mt-auto pt-8 pb-2 border-t-2 border-black flex justify-between items-center text-xs font-mono text-zinc-500 shrink-0">
         <span>LOCAL STORAGE MODE</span>
-        <span>已用空間: {{ storageStore.formattedUsed }}</span>
+        <span>已用空間: {{ storageStore.formattedUsed }} / 5 MB</span>
       </footer>
 
     </div>
