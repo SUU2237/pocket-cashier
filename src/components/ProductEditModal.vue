@@ -140,7 +140,7 @@ const compressImage = (file: File): Promise<string> => {
       img.src = e.target?.result as string
       img.onload = () => {
         const canvas = document.createElement('canvas')
-        const MAX_SIZE = 160 // POS 機小圖只需 300px
+        const MAX_SIZE = 160 // POS 機小圖只需 160px
         let width = img.width
         let height = img.height
 
@@ -270,7 +270,7 @@ const removeImage = () => {
             <input
               v-model="form.category"
               type="text"
-              placeholder="例：原創、咒術、排球"
+              placeholder="例：原創"
               class="w-full px-3 py-2 border-2 border-black font-mono text-xs bg-white focus:outline-none"
             />
           </div>

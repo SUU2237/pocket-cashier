@@ -1,18 +1,45 @@
 import { fileURLToPath, URL } from 'node:url'
-
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwindcss from '@tailwindcss/vite'
+import { VitePWA } from 'vite-plugin-pwa'
 
-// https://vite.dev/config/
+
 export default defineConfig({
   plugins: [
     vue(),
     vueDevTools(),
     tailwindcss(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['shopping-cart.png'],
+      manifest: {
+        name: 'Pocket POS',
+        short_name: 'PocketPOS',
+        description: '結帳與庫存小幫手',
+        theme_color: '#000000',
+        background_color: '#f4f4f5',
+        display: 'standalone',
+        icons: [
+          {
+            src: 'shopping-cart.png',
+            sizes: '192x192',
+            type: 'image/png',
+          },
+          {
+            src: 'shopping-cart.png',
+            sizes: '512x512',
+            type: 'image/png',
+          },
+        ],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+      },
+    }),
   ],
-  base: './', // 確保打包後資源為相對路徑，完全支援無伺服器離線開啟
+  base: './',
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

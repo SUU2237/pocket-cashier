@@ -4,10 +4,12 @@ import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useEventStore } from '@/stores/events'
 import { useProductStore } from '@/stores/products'
+import { useStorageStore } from '@/stores/storage'
 
 const router = useRouter()
 const eventStore = useEventStore()
 const productStore = useProductStore()
+const storageStore = useStorageStore()
 
 const { events, activeEvent } = storeToRefs(eventStore)
 const { products } = storeToRefs(productStore)
@@ -325,10 +327,10 @@ const stockWarnings = computed(() => {
 
       </main>
 
-      <!-- 底部資訊條 (改用 mt-auto 與 pt-8，永遠位在所有卡片之下，不再使用 justify-between 盲目分配空間) -->
+      <!-- 底部資訊條 -->
       <footer class="mt-auto pt-8 pb-2 border-t-2 border-black flex justify-between items-center text-xs font-mono text-zinc-500 shrink-0">
         <span>LOCAL STORAGE MODE</span>
-        <span>NO NETWORK REQUIRED</span>
+        <span>已用空間: {{ storageStore.formattedUsed }}</span>
       </footer>
 
     </div>
