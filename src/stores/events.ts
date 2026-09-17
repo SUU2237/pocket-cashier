@@ -66,6 +66,14 @@ export const useEventStore = defineStore('events', () => {
 
   const activeEvent = computed(() => events.value.find(e => e.isActive) || null)
 
+  const sortedEvents = computed(() => {
+    return [...events.value].sort((a, b) => {
+      const timeA = new Date(a.date).getTime() || 0
+      const timeB = new Date(b.date).getTime() || 0
+      return timeB - timeA // 降序：時間戳記越大的排在前面
+    })
+  })
+
   const setActiveEvent = (id: string) => {
     events.value.forEach(e => {
       e.isActive = e.id === id
@@ -132,6 +140,7 @@ export const useEventStore = defineStore('events', () => {
   return {
     events,
     activeEvent,
+    sortedEvents,
     setActiveEvent,
     addEvent,
     updateEvent,

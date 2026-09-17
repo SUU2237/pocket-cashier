@@ -9,11 +9,12 @@ import EventStockModal, { type VariantStockItem } from '@/components/EventStockM
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import EventSalesModal from '@/components/EventSalesModal.vue'
 
+
 const router = useRouter()
 const eventStore = useEventStore()
 const productStore = useProductStore()
 
-const { events } = storeToRefs(eventStore)
+const { events, sortedEvents } = storeToRefs(eventStore)
 const { products } = storeToRefs(productStore)
 
 const searchQuery = ref('')
@@ -204,7 +205,7 @@ const filteredEvents = computed(() => {
         </div>
 
         <div
-          v-for="ev in filteredEvents"
+          v-for="ev in sortedEvents"
           :key="ev.id"
           :class="[
             'border-2 border-black p-5 transition-all relative',

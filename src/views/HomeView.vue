@@ -7,14 +7,14 @@ import { useProductStore } from '@/stores/products'
 import { useStorageStore } from '@/stores/storage'
 import { exportBackupData, importBackupData } from '@/utils/backup'
 import ConfirmModal from '@/components/ConfirmModal.vue'
-import type { RefSymbol } from '@vue/reactivity'
+
 
 const router = useRouter()
 const eventStore = useEventStore()
 const productStore = useProductStore()
 const storageStore = useStorageStore()
 
-const { events, activeEvent } = storeToRefs(eventStore)
+const { events, activeEvent, sortedEvents } = storeToRefs(eventStore)
 const { products } = storeToRefs(productStore)
 
 // 營收隱私開關
@@ -70,7 +70,7 @@ const saveNote = () => {
 
 // 歷史活動清單（取前 2 筆非作用中的活動）
 const recentEvents = computed(() => {
-  return events.value
+  return sortedEvents.value
     .filter(e => !e.isActive)
     .slice(0, 2)
     .map(e => ({
@@ -295,7 +295,7 @@ const handleConfirmRestore = async () => {
                   class="flex items-center justify-between p-2 bg-zinc-50 border border-zinc-200 font-mono text-xs"
                 >
                   <span class="font-bold text-zinc-800 truncate max-w-40">{{ evt.name }}</span>
-                  <span class="text-zinc-500 shrink-0">{{ evt.date }} · ${{ evt.sales }}</span>
+                  <span class="text-zinc-500 shrink-0">{{ evt.date }}</span>
                 </div>
               </div>
             </div>
@@ -398,7 +398,7 @@ const handleConfirmRestore = async () => {
           @change="handleFileSelected"
         />
       </footer>
-      
+
       <ConfirmModal
         :is-open="isRestoreConfirmOpen"
         title="確認覆蓋現有資料？"
