@@ -5,6 +5,9 @@ import { storeToRefs } from 'pinia'
 import { useEventStore } from '@/stores/events'
 import { useProductStore } from '@/stores/products'
 import { useStorageStore } from '@/stores/storage'
+import { exportBackupData, importBackupData } from '@/utils/backup'
+import ConfirmModal from '@/components/ConfirmModal.vue'
+import type { RefSymbol } from '@vue/reactivity'
 
 const router = useRouter()
 const eventStore = useEventStore()
@@ -106,6 +109,39 @@ const stockWarnings = computed(() => {
 
   return warnings
 })
+
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const isRestoreConfirmOpen = ref(false)
+const pendingRestoreFile = ref<File | null>(null)
+
+const handleTriggerRestore = () => {
+  fileInputRef.value?.click()
+}
+
+const handleFileSelected =( event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if(!file) return
+
+  pendingRestoreFile.value = file
+  isRestoreConfirmOpen.value = true
+  target.value = ''
+}
+
+const handleConfirmRestore = async () => {
+  if(!pendingRestoreFile.value) return
+
+  try{
+    await importBackupData(pendingRestoreFile.value)
+    isRestoreConfirmOpen.value = false
+
+    window.location.reload()
+  }catch(error){
+    alert(`還原失敗：${(error as Error).message}`)
+  }finally{
+    pendingRestoreFile.value = null
+  }
+}
 </script>
 
 <template>
@@ -328,10 +364,50 @@ const stockWarnings = computed(() => {
       </main>
 
       <!-- 底部資訊條 -->
-      <footer class="mt-auto pt-8 pb-2 border-t-2 border-black flex justify-between items-center text-xs font-mono text-zinc-500 shrink-0">
-        <span>LOCAL STORAGE MODE</span>
+      <footer class="mt-auto pt-8 pb-2 border-t-2 border-black flex flex-wrap justify-between items-center gap-2 text-xs font-mono text-zinc-500 shrink-0">
+        <div class="flex items-center gap-2">
+          <span>LOCAL STORAGE</span>
+          <span class="text-zinc-300">|</span>
+          <!-- 匯出備份 -->
+          <button
+            type="button"
+            @click="exportBackupData"
+            class="text-zinc-600 hover:text-black underline cursor-pointer decoration-dotted"
+          >
+            匯出備份
+          </button>
+          <span class="text-zinc-300">/</span>
+          <!-- 還原資料 -->
+          <button
+            type="button"
+            @click="handleTriggerRestore"
+            class="text-zinc-600 hover:text-black underline cursor-pointer decoration-dotted"
+          >
+            還原資料
+          </button>
+        </div>
+
         <span>已用空間: {{ storageStore.formattedUsed }} / 5 MB</span>
+
+        <!-- 隱藏的檔案選擇器 -->
+        <input
+          ref="fileInputRef"
+          type="file"
+          accept="application/json"
+          class="hidden"
+          @change="handleFileSelected"
+        />
       </footer>
+      
+      <ConfirmModal
+        :is-open="isRestoreConfirmOpen"
+        title="確認覆蓋現有資料？"
+        message="還原備份將會完全覆蓋目前的母庫存商品與所有活動訂單記錄，此操作無法復原！"
+        confirm-text="確認還原並重整"
+        confirm-type="danger"
+        @confirm="handleConfirmRestore"
+        @cancel="isRestoreConfirmOpen = false"
+      />
 
     </div>
   </div>
