@@ -1,27 +1,34 @@
 @import "tailwindcss";
 
-/* 針對 Safari / WebKit 的跨瀏覽器重置修復 */
 @layer base {
-    /* 1. 移除 Safari 原生 input 的圓角、內陰影與立體效果 */
-    input,
-    textarea,
-    button,
-    select {
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      appearance: none;
-      border-radius: 0;
-    }
-  
-    /* 2. 強制修復 Safari 下 placeholder 顏色過深/變黑的問題 */
-    input::placeholder,
-    textarea::placeholder {
-      color: #a1a1aa !important; /* 相當於 Tailwind 的 text-zinc-400 */
-      opacity: 1 !important;      /* Safari 預設有時會壓低或覆蓋透明度 */
-    }
-  
-    /* 3. 移除 Safari 在點擊輸入框或按鈕時產生的藍色半透明遮罩 */
-    * {
-      -webkit-tap-highlight-color: transparent;
-    }
+  /* 設定底層背景色、防下拉露餡、禁雙擊縮放 */
+  html,
+  body {
+    background-color: #f4f4f5;
+    margin: 0;
+    padding: 0;
+    overscroll-behavior-y: none;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
   }
+
+  input,
+  textarea,
+  button,
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border-radius: 0;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #a1a1aa !important; 
+    opacity: 1 !important;    
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
