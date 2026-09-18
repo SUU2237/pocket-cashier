@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, computed } from 'vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 
 export interface VariantItem {
@@ -101,6 +101,18 @@ const confirmDiscard = () => {
   emit('close')
 }
 
+// 判斷是否為無效數字（空值、NaN、或小於 0）
+const isInvalidNum = (val: unknown) => {
+  if (val === '' || val === null || val === undefined) return true
+  const n = Number(val)
+  return isNaN(n) || n < 0
+}
+
+// 表單內是否有任何規格數值違規
+const hasVariantError = computed(() => {
+  return form.variants.some(v => isInvalidNum(v.price) || isInvalidNum(v.stock))
+})
+
 const handleSave = () => {
   if (!form.name.trim()) {
     showAlertNameRequired.value = true
@@ -116,8 +128,8 @@ const handleSave = () => {
     return {
       ...v,
       name: finalName,
-      price: v.price === '' ? 0 : Number(v.price),
-      stock: v.stock === '' ? 0 : Number(v.stock),
+      price: v.price === '' ? 0 : Math.max(0, Number(v.price)),
+      stock: v.stock === '' ? 0 : Math.max(0, Number(v.stock)),
     }
   })
 
@@ -166,8 +178,6 @@ const compressImage = (file: File): Promise<string> => {
           ctx.drawImage(img, 0, 0, width, height)
         }
         
-
-        // 壓縮成 0.6 品質的 jpeg，單圖僅約 10KB
         resolve(canvas.toDataURL('image/jpeg', 0.6))
       }
       img.onerror = reject
@@ -222,10 +232,7 @@ const removeImage = () => {
 
       <!-- 表單內容 -->
       <div class="flex-1 overflow-y-auto space-y-4 pr-1">
-        <!-- 表單內容區域 -->
         <div class="space-y-4">
-
-        <!-- 1. 商品圖片專用橫列（完整寬度） -->
         <div>
           <label class="block text-xs font-mono font-bold mb-2">商品圖片</label>
           <div class="flex items-center gap-4 p-3 bg-zinc-50 border-2 border-black">
@@ -238,8 +245,6 @@ const removeImage = () => {
                 class="w-full h-full object-cover"
               />
               <span v-else class="font-mono text-[10px] text-zinc-400 font-bold">NO IMG</span>
-
-              <!-- 移除按鈕 -->
               <button
                 v-if="form.imageUrl"
                 type="button"
@@ -251,7 +256,6 @@ const removeImage = () => {
               </button>
             </div>
 
-            <!-- 操作按鈕與提示 -->
             <div class="flex-1 min-w-0">
               <label class="inline-block px-3 py-1.5 bg-white hover:bg-zinc-100 active:translate-x-0.5 active:translate-y-0.5 border-2 border-black font-mono text-xs font-bold shadow-[2px_2px_0px_#000] active:shadow-none transition cursor-pointer">
                 {{ form.imageUrl ? '更換圖片' : '選擇圖片上傳' }}
@@ -263,13 +267,12 @@ const removeImage = () => {
                 />
               </label>
               <p class="text-[11px] font-mono text-zinc-500 mt-1.5">
-                支援 JPG / PNG，系統將自動等比壓縮至 300px
+                支援 JPG / PNG，系統將自動等比壓縮
               </p>
             </div>
           </div>
         </div>
 
-        <!-- 2. 作品分類與商品名稱（兩欄或上下排列） -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-mono font-bold mb-1">作品分類 / IP</label>
@@ -322,7 +325,7 @@ const removeImage = () => {
                   v-model="v.name"
                   type="text"
                   placeholder="單一規格"
-                  class="w-full border border-black px-2 py-1 text-xs font-bold bg-white focus:outline-none"
+                  class="w-full border-2 border-black px-2 py-1 text-xs font-bold bg-white focus:outline-none"
                 />
               </div>
 
@@ -331,8 +334,12 @@ const removeImage = () => {
                 <input
                   v-model.number="v.price"
                   type="number"
+                  min="0"
                   placeholder="0"
-                  class="w-full border border-black px-2 py-1 text-xs font-mono font-bold bg-white text-right focus:outline-none"
+                  :class="[
+                    'w-full border-2 px-2 py-1 text-xs font-mono font-bold bg-white text-right focus:outline-none transition-colors',
+                    isInvalidNum(v.price) ?  'border-red-500 text-red-600 bg-red-50' : 'border-black'
+                  ]"
                 />
               </div>
 
@@ -341,9 +348,12 @@ const removeImage = () => {
                 <input
                   v-model.number="v.stock"
                   type="number"
+                  min="0"
                   placeholder="0"
-                  class="w-full border border-black px-2 py-1 text-xs font-mono font-bold bg-white text-right focus:outline-none"
-                />
+                  :class="[
+                    'w-full border-2 px-2 py-1 text-xs font-mono font-bold bg-white text-right focus:outline-none transition-colors',
+                    isInvalidNum(v.stock) ?  'border-red-500 text-red-600 bg-red-50' : 'border-black'
+                  ]"/>
               </div>
 
               <div class="col-span-1 text-right pt-3">
@@ -373,16 +383,21 @@ const removeImage = () => {
         </button>
         <button
           type="button"
+          :disabled="hasVariantError"
           @click="handleSave"
-          class="py-2.5 bg-orange-500 hover:bg-orange-600 border-2 border-black font-mono font-black text-white text-xs tracking-wider shadow-[2px_2px_0px_#000] active:shadow-none transition cursor-pointer"
-        >
+          :class="[
+            'py-2.5 border-2 border-black font-mono font-black text-white text-xs tracking-wider shadow-[2px_2px_0px_#000] transition ',
+            hasVariantError
+              ? 'bg-zinc-400 cursor-not-allowed opacity-60 shadow-none cursor-not-allowed'
+              : 'bg-orange-500 hover:bg-orange-600 active:shadow-none cursor-pointer'
+          ]">
           SAVE ITEM ➔
         </button>
       </div>
 
     </div>
 
-    <!-- 1. 防呆：品名必填警告 -->
+    <!-- 品名必填警告 -->
     <ConfirmModal
       :is-open="showAlertNameRequired"
       title="無法儲存商品"
@@ -395,7 +410,7 @@ const removeImage = () => {
       @cancel="showAlertNameRequired = false"
     />
 
-    <!-- 2. 防呆：放棄編輯確認 -->
+    <!-- 放棄編輯確認 -->
     <ConfirmModal
       :is-open="showConfirmDiscard"
       title="確定要放棄本次編輯嗎？"

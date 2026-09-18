@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { MarketEvent } from '@/stores/events'
+import { useEventStore, type MarketEvent, type OrderRecord } from '@/stores/events'
+import ConfirmModal from './ConfirmModal.vue';
+import StampOverlay from './StampOverlay.vue';
 
 const props = defineProps<{
   isOpen: boolean
@@ -78,12 +80,12 @@ const getOrderDateDivider = (idx: number): string | null => {
   const currentOrder = orders[idx]
   if (!currentOrder?.date) return null
 
-  // 1. 最頂部第一筆：永遠顯示最新日期
+  // 最頂部：永遠顯示最新日期
   if (idx === 0) {
     return currentOrder.date
   }
 
-  // 2. 後續筆數：若此筆日期與「上一筆 (較新)」不同，代表進入新的一天
+  // 日期不同，代表進入新的一天
   const prevOrder = orders[idx - 1]
   if (prevOrder?.date && currentOrder.date !== prevOrder.date) {
     return currentOrder.date
@@ -91,6 +93,37 @@ const getOrderDateDivider = (idx: number): string | null => {
 
   return null
 }
+
+const isConfirmOpen = ref(false)
+const targetOrder = ref<OrderRecord | null>(null)
+
+const isProcessing = ref(false)
+const eventStore = useEventStore()
+
+const promptDeleteOrder = ( order: OrderRecord) => {
+  targetOrder.value = order
+  isConfirmOpen.value = true
+}
+
+const handleConfirmDelete = () => {
+  if( !props.event || !targetOrder.value) return
+
+  isConfirmOpen.value = false
+  isProcessing.value = true
+  
+  const eventId = props.event.id
+  const orderId = targetOrder.value.id
+
+  setTimeout (() => {
+    eventStore.deleteOrder( eventId, orderId)
+    isProcessing.value = false
+    targetOrder.value = null
+  }
+  ,750)
+
+}
+
+
 </script>
 
 <template>
@@ -222,7 +255,16 @@ const getOrderDateDivider = (idx: number): string | null => {
                   </span>
                   <span class="text-zinc-500 font-bold">{{ order.createdAt }}</span>
                 </div>
-                <span class="font-black text-sm">${{ order.totalAmount }}</span>
+                <div class="flex items-center gap-3">
+                  <span class="font-black text-sm">${{ order.totalAmount }}</span>
+                  <button
+                    type="button"
+                    @click="promptDeleteOrder(order)"
+                    class="text-[10px] text-zinc-400 hover:text-red-600 underline font-mono cursor-pointer transition"
+                  >
+                    作廢
+                  </button>
+                </div>
               </div>
 
               <div class="space-y-1 text-zinc-700">
@@ -258,5 +300,18 @@ const getOrderDateDivider = (idx: number): string | null => {
         </button>
       </footer>
     </div>
+    <ConfirmModal
+      :is-open="isConfirmOpen"
+      title="作廢訂單確認"
+      :message="`確定要作廢此訂單嗎？此訂單售出的所有商品數量將自動加回現場庫存與全域母庫存。`"
+      confirm-text="確定作廢並回補"
+      cancel-text="取消"
+      variant="danger"
+      @confirm="handleConfirmDelete"
+      @cancel="isConfirmOpen = false"
+    />
+    <StampOverlay :show="isProcessing" variant="danger" />
   </div>
+
+  
 </template>

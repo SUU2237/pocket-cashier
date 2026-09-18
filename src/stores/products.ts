@@ -71,12 +71,24 @@ export const useProductStore = defineStore('products', () => {
     }
   }
 
+  // 刪除訂單回補母庫存
+  const addStock = (variantId: string, qty: number) => {
+    for (const product of products.value) {
+      const targetVariant = product.variants.find(v => v.id === variantId)
+      if (targetVariant) {
+        targetVariant.stock += qty
+        break
+      }
+    }
+  }
+
   return {
     products,
     addProduct,
     updateProduct,
     deleteProduct,
     deductStock,
+    addStock,
   }
 })
 

@@ -8,6 +8,7 @@ import VariantModal from '@/components/VariantModal.vue'
 import CartDrawer from '@/components/CartDrawer.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import EventSalesModal from '@/components/EventSalesModal.vue'
+import StampOverlay from '@/components/StampOverlay.vue'
 
 const router = useRouter()
 const eventStore = useEventStore()
@@ -68,6 +69,7 @@ const shelfProducts = computed<DisplayProduct[]>(() => {
     let liveVariantName = item.variantName
     let liveCategory = item.category
     let liveImg = ''
+    let globalStock = 0
 
     for (const p of products.value) {
       const v = p.variants.find(targetV => targetV.id === item.variantId)
@@ -77,9 +79,12 @@ const shelfProducts = computed<DisplayProduct[]>(() => {
         liveVariantName = v.name
         liveCategory = p.category
         liveImg = p.imageUrl || ''
+        globalStock = Number(v.stock) || 0
         break
       }
     }
+
+    const effectiveStock = Math.max(0, Math.min(item.eventStock, globalStock))
 
     const liveItem: EventStockItem = {
       ...item,
@@ -87,6 +92,7 @@ const shelfProducts = computed<DisplayProduct[]>(() => {
       variantName: liveVariantName,
       category: liveCategory,
       price: livePrice,
+      eventStock: effectiveStock
     }
 
     const list = groupMap.get(liveName) || []
@@ -244,6 +250,7 @@ const handleCheckout = () => {
   const received = receivedAmount.value < total ? total : receivedAmount.value
   const change = received - total
 
+  
   eventStore.recordOrder({
     eventId: activeEvent.value.id,
     items: cartItems.value.map(c => ({
@@ -257,11 +264,16 @@ const handleCheckout = () => {
     receivedAmount: received,
     changeAmount: change,
   })
-
-  lastCheckoutSummary.value = { total, change }
-  showCheckoutSuccess.value = true
-  handleClearCart()
   isCartCheckOpen.value = false
+  showCheckoutSuccess.value = true
+
+  setTimeout(() => {
+    handleClearCart()
+    showCheckoutSuccess.value = false
+  },600)
+  lastCheckoutSummary.value = { total, change }
+  
+  
 }
 </script>
 
@@ -338,10 +350,10 @@ const handleCheckout = () => {
             :key="item.name"
             @click="handleProductClick(item)"
             :class="[
-              'relative bg-white border-2 border-black p-3.5 flex flex-col justify-between select-none cursor-pointer transition-all',
+              'relative bg-white border-2 border-black p-3.5 flex flex-col justify-between select-none transition-all',
               item.totalStock === 0 
-                ? 'opacity-40 cursor-not-allowed bg-zinc-200' 
-                : 'shadow-[3px_3px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none hover:bg-amber-50/40'
+                ? 'opacity-40 cursor-not-allowed bg-zinc-200 cursor-not-allowed' 
+                : 'shadow-[3px_3px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none hover:bg-amber-50/40 cursor-pointer '
             ]"
           >
             <div
@@ -563,8 +575,10 @@ const handleCheckout = () => {
       @cancel="isCartCheckOpen = false"
     />
 
+    <StampOverlay :show="showCheckoutSuccess" variant="success"/>
+
     <!-- 結帳成功提示 -->
-    <ConfirmModal
+    <!-- <ConfirmModal
       :is-open="showCheckoutSuccess"
       title="結帳完成！"
       :message="`本次交易總計 $${lastCheckoutSummary.total}，找零 $${lastCheckoutSummary.change}。庫存已即時扣減。`"
@@ -574,6 +588,7 @@ const handleCheckout = () => {
       confirm-text="下一筆 ➔"
       @confirm="showCheckoutSuccess = false"
       @cancel="showCheckoutSuccess = false"
-    />
+    /> -->
+    
   </div>
 </template>

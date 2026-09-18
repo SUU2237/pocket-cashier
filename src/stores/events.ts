@@ -9,7 +9,7 @@ export interface EventStockItem {
   variantName: string
   category: string
   price: number
-  eventStock: number
+  eventStock: number 
   selected: boolean
 }
 
@@ -120,17 +120,14 @@ export const useEventStore = defineStore('events', () => {
     const productStore = useProductStore()
 
     order.items.forEach(item => {
-      // 1. 扣減本場次現場庫存
       const stockItem = target.stockConfig.find(s => s.variantId === item.variantId)
       if (stockItem) {
         stockItem.eventStock = Math.max(0, stockItem.eventStock - item.qty)
       }
 
-      // 2. 扣減全域商品倉庫母庫存
       productStore.deductStock(item.variantId, item.qty)
     })
 
-    // 3. 寫入訂單紀錄
     const now = new Date()
     target.orders.unshift({
       ...order,
@@ -138,6 +135,30 @@ export const useEventStore = defineStore('events', () => {
       date: now.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }),
       createdAt: now.toLocaleTimeString('zh-TW', { hour12: false }),
     })
+  }
+
+  // 刪除/作廢訂單：自動回補「現場配額」與「全域倉庫母庫存」
+  const deleteOrder = (eventId: string, orderId: string) => {
+    const target = events.value.find(e => e.id === eventId)
+    if (!target) return
+
+    const orderIndex = target.orders.findIndex(o => o.id === orderId)
+    if (orderIndex === -1) return
+
+    const order = target.orders[orderIndex]
+    if (!order) return
+
+    const productStore = useProductStore()
+
+    order.items.forEach(item => {
+      const stockItem = target.stockConfig.find(s => s.variantId === item.variantId)
+      if (stockItem) {
+        stockItem.eventStock += item.qty
+      }
+      productStore.addStock(item.variantId, item.qty)
+    })
+
+    target.orders.splice(orderIndex, 1)
   }
 
   return {
@@ -150,5 +171,6 @@ export const useEventStore = defineStore('events', () => {
     deleteEvent,
     updateStockConfig,
     recordOrder,
+    deleteOrder,
   }
 })

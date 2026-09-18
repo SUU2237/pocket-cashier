@@ -58,8 +58,8 @@ const handleSave = (savedData: ProductFormData) => {
   const cleanVariants = savedData.variants.map(v => ({
     id: v.id,
     name: v.name,
-    price: Number(v.price) || 0,
-    stock: Number(v.stock) || 0,
+    price: Math.max(0, Number(v.price) || 0),
+    stock: Math.max(0, Number(v.stock) || 0),
   }))
 
   if (savedData.id) {

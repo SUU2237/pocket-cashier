@@ -68,6 +68,23 @@ const filteredList = computed(() => {
 
 const checkIsDirty = () => JSON.stringify(localList.value) !== originalSnapshot
 
+// 判斷單項配額是否無效（空值、NaN、小於 0 或 超出母庫存）
+const isStockInvalid = (item: VariantStockItem) => {
+  if (!item.selected) return false
+  const val = item.eventStock as unknown
+  if (val === '' || val === null || val === undefined) return true
+  const n = Number(val)
+  if (!Number.isFinite(n)) {
+    return true
+  }
+  return n < 0 || n > item.globalStock
+}
+
+// 整個清單是否有勾選項目出錯
+const hasStockError = computed(() => {
+  return localList.value.some(item => isStockInvalid(item))
+})
+
 const requestClose = () => {
   if (checkIsDirty()) {
     showConfirmDiscard.value = true
@@ -83,16 +100,7 @@ const confirmDiscard = () => {
 
 // 儲存前嚴格檢查配額
 const handleSave = () => {
-  for (const item of localList.value) {
-    if (item.selected) {
-      if (item.eventStock < 0) item.eventStock = 0
-      if (item.eventStock > item.globalStock) {
-        invalidStockItemName.value = `${item.productName} (${item.variantName})`
-        showStockExceededAlert.value = true
-        return
-      }
-    }
-  }
+  if( hasStockError.value ) return
 
   emit('save', JSON.parse(JSON.stringify(localList.value)))
   emit('close')
@@ -170,7 +178,6 @@ const handleSave = () => {
             item.selected ? 'bg-amber-50/60 shadow-[2px_2px_0px_#000]' : 'bg-zinc-50 opacity-50'
           ]"
         >
-          <!-- 自訂橘底白勾 Checkbox -->
           <div class="flex items-center gap-3 min-w-0 flex-1">
             <label class="relative flex items-center justify-center cursor-pointer shrink-0">
               <input
@@ -209,7 +216,7 @@ const handleSave = () => {
             </div>
           </div>
 
-          <!-- 現場配額輸入（加上超出標紅樣式） -->
+          <!-- 現場配額輸入 -->
           <div class="flex items-center gap-2 shrink-0">
             <span class="text-[10px] font-mono font-bold text-zinc-500">現場配額:</span>
             <input
@@ -219,8 +226,10 @@ const handleSave = () => {
               :max="item.globalStock"
               :disabled="!item.selected"
               :class="[
-                'w-16 border-2 px-2 py-1 text-xs font-mono font-bold bg-white text-right disabled:bg-zinc-200 focus:outline-none',
-                item.eventStock > item.globalStock ? 'border-red-500 text-red-600 bg-red-50' : 'border-black'
+                'w-16 border-2 px-2 py-1 text-xs font-mono font-bold bg-white text-right disabled:bg-zinc-200 focus:outline-none transition-colors',
+                isStockInvalid(item)
+                  ? 'border-red-500 text-red-600 bg-red-50'
+                  : 'border-black'
               ]"
             />
           </div>
@@ -238,8 +247,14 @@ const handleSave = () => {
         </button>
         <button
           type="button"
+          :disabled="hasStockError"
           @click="handleSave"
-          class="py-2.5 bg-orange-500 hover:bg-orange-600 border-2 border-black font-mono font-black text-white text-xs tracking-wider shadow-[2px_2px_0px_#000] active:shadow-none transition cursor-pointer"
+          :class="[
+            'py-2.5 border-2 border-black font-mono font-black text-white text-xs tracking-wider shadow-[2px_2px_0px_#000] transition',
+            hasStockError
+              ? 'bg-zinc-400 cursor-not-allowed opacity-60 shadow-none'
+              : 'bg-orange-500 hover:bg-orange-600 active:shadow-none cursor-pointer'
+          ]"
         >
           SAVE INVENTORY ➔
         </button>
