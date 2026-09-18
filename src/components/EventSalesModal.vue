@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue' // 1. 補上 ref
+import { ref, computed } from 'vue'
 import type { MarketEvent } from '@/stores/events'
 
 const props = defineProps<{
@@ -39,7 +39,7 @@ const salesReport = computed(() => {
 
   props.event.orders.forEach(order => {
     (order.items || []).forEach(item => {
-      const key = `${item.productName}_${item.variantName}`
+      const key = item.variantId
       const exist = map.get(key)
       if (exist) {
         exist.totalQty += item.qty
@@ -70,17 +70,23 @@ const salesReport = computed(() => {
   }
 })
 
-// 判斷是否需要插入跨日分隔線，並回傳前一天的日期字串
-const getPreviousOrderDate = (idx: number): string | null => {
+// 判斷該筆訂單上方是否需要渲染日期分隔線
+const getOrderDateDivider = (idx: number): string | null => {
   const orders = props.event?.orders
-  if (!orders) return null
+  if (!orders || orders.length === 0) return null
 
   const currentOrder = orders[idx]
-  const nextOrder = orders[idx + 1] // 較舊的一筆
+  if (!currentOrder?.date) return null
 
-  // 如果有下一筆，且兩者日期都有值且不相同
-  if (currentOrder?.date && nextOrder?.date && currentOrder.date !== nextOrder.date) {
-    return nextOrder.date
+  // 1. 最頂部第一筆：永遠顯示最新日期
+  if (idx === 0) {
+    return currentOrder.date
+  }
+
+  // 2. 後續筆數：若此筆日期與「上一筆 (較新)」不同，代表進入新的一天
+  const prevOrder = orders[idx - 1]
+  if (prevOrder?.date && currentOrder.date !== prevOrder.date) {
+    return currentOrder.date
   }
 
   return null
@@ -185,7 +191,7 @@ const getPreviousOrderDate = (idx: number): string | null => {
           </div>
         </template>
 
-        <!-- Tab 2: 逐筆訂單記錄清單 (含跨日虛線分隔) -->
+        <!-- 筆訂單記錄清單 (含跨日虛線分隔) -->
         <template v-else>
           <div
             v-if="!event.orders || event.orders.length === 0"
@@ -195,9 +201,20 @@ const getPreviousOrderDate = (idx: number): string | null => {
           </div>
 
           <template v-else v-for="(order, idx) in event.orders" :key="order.id">
+            <!-- 日期標頭線：最頂部第一筆必顯示，跨日也會自動插入 -->
+            <div
+              v-if="getOrderDateDivider(idx)"
+              class="flex items-center my-3 text-[11px] font-mono text-zinc-400 font-bold"
+            >
+              <div class="flex-1 border-t-2 border-dashed border-zinc-300"></div>
+              <span class="px-3 bg-zinc-200 text-zinc-700 py-0.5 border border-black shadow-[1px_1px_0px_#000]">
+                {{ getOrderDateDivider(idx) }}
+              </span>
+              <div class="flex-1 border-t-2 border-dashed border-zinc-300"></div>
+            </div>
+
             <!-- 訂單卡片本體 -->
             <div class="p-3 border-2 border-black bg-zinc-50 space-y-2 shadow-[2px_2px_0px_#000] text-xs font-mono">
-              <!-- 訂單時間與金額 -->
               <div class="flex items-center justify-between border-b border-dashed border-zinc-300 pb-1.5">
                 <div class="flex items-center gap-2">
                   <span class="bg-black text-white px-1 py-0.5 text-[10px] font-bold">
@@ -208,7 +225,6 @@ const getPreviousOrderDate = (idx: number): string | null => {
                 <span class="font-black text-sm">${{ order.totalAmount }}</span>
               </div>
 
-              <!-- 購買項目細項 -->
               <div class="space-y-1 text-zinc-700">
                 <div
                   v-for="i in order.items"
@@ -220,27 +236,12 @@ const getPreviousOrderDate = (idx: number): string | null => {
                 </div>
               </div>
 
-              <!-- 收找金額 -->
               <div class="pt-1.5 border-t border-zinc-200 flex justify-between text-[11px] text-zinc-500">
                 <span>實收: ${{ order.receivedAmount }}</span>
                 <span v-if="order.changeAmount > 0" class="text-emerald-700 font-bold">找零: ${{ order.changeAmount }}</span>
                 <span v-else class="text-zinc-400">免找零</span>
               </div>
             </div>
-
-           
-            <!-- 自動插入跨日分隔線 -->
-            <div
-              v-if="getPreviousOrderDate(idx)"
-              class="flex items-center my-3 text-[11px] font-mono text-zinc-400 font-bold"
-            >
-              <div class="flex-1 border-t-2 border-dashed border-zinc-300"></div>
-              <span class="px-3 bg-zinc-200 text-zinc-700 py-0.5 border border-black shadow-[1px_1px_0px_#000]">
-                {{ getPreviousOrderDate(idx) }}
-              </span>
-              <div class="flex-1 border-t-2 border-dashed border-zinc-300"></div>
-            </div>
-            
           </template>
         </template>
 
